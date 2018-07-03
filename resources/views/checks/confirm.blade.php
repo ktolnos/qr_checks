@@ -11,6 +11,10 @@
             Checks
         </div>
 
+        @if($check)
+            <div class="alert alert-warning">This check is probably already in the system</div>
+        @endif
+
         <table id="table" class="table table-striped table-bordered" style="width:100%">
             <thead>
             <th>

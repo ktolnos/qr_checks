@@ -26,4 +26,12 @@ class User extends Authenticatable
     protected $hidden = [
         'password', 'remember_token',
     ];
+
+    public function products(){
+        return $this->belongsToMany('App\Product')->withPivot('portion');
+    }
+
+    public function view(){
+        return $this->hasOne('App\UserView');
+    }
 }

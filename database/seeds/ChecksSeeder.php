@@ -11,14 +11,16 @@ class ChecksSeeder extends Seeder
      */
     public function run()
     {
-        DB::table('checks')->insert([
-            'fiscalSign' => str_random(10),
-            'fiscalDriveNumber' => str_random(10),
-            'fiscalDocumentNumber' => str_random(10),
-            'storeName' => str_random(20),
-            'initialTotalSum' => rand(20, 2000),
-            'initialDate' => new DateTime('now'),
-            'status' => 5,
-        ]);
+        for ($i=0; $i<10; $i++) {
+            DB::table('checks')->insert([
+                'fiscalSign' => str_random(10),
+                'fiscalDriveNumber' => str_random(10),
+                'fiscalDocumentNumber' => str_random(10),
+                'storeInn' => str_random(20),
+                'initialTotalSum' => rand(20, 2000),
+                'initialDate' => new DateTime('now'),
+                'status' => 5,
+            ]);
+        }
     }
 }

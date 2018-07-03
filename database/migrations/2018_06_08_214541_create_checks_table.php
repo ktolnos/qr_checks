@@ -18,7 +18,7 @@ class CreateChecksTable extends Migration
             $table->string('fiscalSign', 20);
             $table->string('fiscalDocumentNumber', 20);
             $table->string('fiscalDriveNumber', 20);
-            $table->string('storeName', 100);
+            $table->string('storeInn', 100);
             $table->decimal('initialTotalSum', 15, 2);
             $table->dateTime('initialDate');
             $table->integer('status')->default(0);

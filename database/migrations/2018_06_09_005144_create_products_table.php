@@ -15,8 +15,8 @@ class CreateProductsTable extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->increments('id');
-            $table->unsignedInteger('checkId')->nullable();
-            $table->foreign('checkId')
+            $table->unsignedInteger('check_id')->nullable();
+            $table->foreign('check_id')
                 ->references('id')->on('checks')
                 ->onDelete('cascade');
             $table->string('name', 100);

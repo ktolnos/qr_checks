@@ -1,175 +1,189 @@
 @extends('app')
 
 @section('content')
-    <a class="btn btn-primary" href="{{url($urlBase.'/add')}}">Add {{$singular}}</a>
-    @if (count($items) > 0)
-        <div id="datatables" class="panel panel-default">
-            <div class="panel-heading">
-                {{ucfirst($plural)}}
-            </div>
-            <div class="grid-row" layout="row top-stretch">
-                <div class="grid-cell">
-                    <datatable id="data-table-main"
-                               :source="items.rows"
-                               :striped="items.striped"
-                               :editable="items.editable"
-                               :line-numbers="items.lineNumbers">
-                        <datatable-column
-                                v-for="item in items.columns"
-                                :id="item.id"
-                                :label="item.label"
-                                :width="item.width"
-                                :sortable="item.sortable"
-                                :groupable="item.groupable"
-                                :aggregators="item.aggregators"
-                                :formatter="item.formatter">
-                        </datatable-column>
-                    </datatable>
+    <div id="content" xmlns="http://www.w3.org/1999/html">
+        <a class="btn btn-outline-primary" href="{{url($urlBase.'/add')}}">Add {{$singular}}</a>
+        <button :class="'save btn btn-primary '+saveButtonClass" @click="save(items, deletedItems)">Save</button>
+        @yield('top-content')
+        @if (count($items) > 0)
+            <div id="datatables" class="panel panel-default">
+                <div class="panel-heading">
+                    {{ucfirst($plural)}}
+                </div>
+                <div class="panel-body">
+                    <paginator :source="items" :page-size="50">
+                        <template scope="page">
+                            <!-- Notice here how we bind the datatable source to the data property exposed from the paginator -->
+                            <!-- this ensures that the only data the datatable is aware of is the current page -->
+                            <datatable id="data-table-main"
+                                       :source="page.data"
+                                       :striped="true"
+                                       :editable={{$editable}}>
+
+                                <!--TODO Editable for columns -->
+
+                                @foreach($columns as $column)
+
+                                    <datatable-column
+                                            @if(!isset($column['template']))
+                                            :id="'{{$column['data']}}'"
+                                            @else
+                                            id="{{isset($column['id'])?$column['id']:'column_'.$column['title']}}"
+                                            @endif
+                                            @isset($column['formatter'])
+                                            :formatter="{{$column['formatter']}}"
+                                            @endisset
+                                            :label="'{{$column['title']}}'"
+                                            :width="{{$column['width'] or 'null'}}"
+                                            :sortable="{{isset($column['sortable'])?json_encode($column['sortable']):json_encode(false)}}"
+                                            :groupable="{{isset($column['groupable'])?json_encode($column['groupable']):json_encode(false)}}"
+                                            :editable="{{isset($column['editable'])?json_encode($column['editable']):json_encode(false)}}"
+                                            @isset($column['aggregators'])
+                                            :aggregators="[
+                                            @foreach($column['aggregators'] as $aggregator)
+                                                    aggregators.{{$aggregator}},
+                                            @endforeach]"
+                                            @endisset
+                                            >
+                                        {{$column['view'] or ''}}
+                                    </datatable-column>
+                                    @isset($column['template'])
+                                    <template slot="{{isset($column['id'])?$column['id']:'column_'.$column['title']}}" scope="cell">
+                                        {!! $column['template'] !!}
+                                    </template>
+                                    @endisset
+                                @endforeach
+                                @if(count($buttons) > 0)
+                                    <datatable-column id="actions" label="Actions" :sortable="false" :groupable="false"
+                                                      :width="{{$buttonsWidth}}"></datatable-column>
+                                    <template slot="actions" scope="cell">
+                                        <div class="btn-group d-flex" role="group">
+                                            @foreach($buttons as $button_name => $button_props)
+                                                <?php
+                                                    $defaults = [
+                                                        'delete' => [
+                                                            'title' => 'Delete',
+                                                            'onclick' => "deleteItem(items, cell.row, '')",
+                                                            'class' => 'btn-danger'
+                                                        ],
+                                                        'view' => [
+                                                            'title' => 'View',
+                                                            'onclick' => "viewItem(cell.row, 'id')",
+                                                            'class' => 'btn-secondary'
+                                                        ]
+                                                    ];
+                                                    if(is_string($button_props) && array_key_exists($button_props, $defaults)){
+                                                        $button_props = $defaults[$button_props];
+                                                    }
+                                                ?>
+                                                <a class="btn
+                                                @if(array_key_exists('class', $button_props)) {{$button_props['class']}}
+                                                @else 'btn-secondary'
+                                                @endif
+                                                        col-md-12"
+                                                @if(array_key_exists('onclick', $button_props))
+                                                    @click="{{$button_props['onclick']}}"
+                                                @endif
+                                                @if(array_key_exists(':href', $button_props))
+                                                    :href="{{$button_props[':href']}}"
+                                                @endif
+
+                                                    >
+                                                    {{$button_props['title']}}
+                                                    </a>
+                                            @endforeach
+
+                                        </div>
+                                    </template>
+                                @endif
+                            </datatable>
+                        </template>
+                    </paginator>
+                    <button :class="'save static btn '+saveButtonClass" @click="save(items, deletedItems)"><i class="fas fa-save"></i></button>
                 </div>
             </div>
-            <div class="panel-body">
-                <table class="table table-striped task-table">
-
-                    <!-- Table Headings -->
-                    <thead>
-                    @foreach($titles as $title)
-                        <th>{{$title}}</th>
-                    @endforeach
-                    @if($buttonsColumn)
-                        <th>&nbsp;</th>
-                    @endif
-                    </thead>
-
-                    <!-- Table Body -->
-                    <tbody>
-                    @foreach ($items as $item)
-                        @include($rowTemplate, ['params' => $rowParams])
-                    @endforeach
-                    </tbody>
-                </table>
+        @else
+            <div class="panel-heading">
+                No {{ucfirst($plural)}}
             </div>
-        </div>
-    @else
-        <div class="panel-heading">
-            No {{ucfirst($plural)}}
-        </div>
-    @endif
+        @endif
 
+    </div>
 
     <script>
+
         var aggregators = vuetiful.aggregators;
-        var formatters = vuetiful.formatters;
-        var currencies = vuetiful.maps.currencies;
 
-        var items = {
-            striped: true,
-            editable: true,
-            lineNumbers: false,
-            filter: null,
-
-            currency: "RUR",
-            dateFormat: "DD MMMM YYYY",
-
-            columns: [
-                {
-                    id: "name",
-                    label: "Name",
-                    width: null,
-                    sortable: true,
-                    groupable: true,
-                    aggregators: []
-                },
-                {
-                    id: "qauntity",
-                    label: "Quantity",
-                    width: 25,
-                    sortable: true,
-                    groupable: true,
-                    aggregators: []
-                },
-                {
-                    id: "price",
-                    label: "Price",
-                    width: null,
-                    sortable: true,
-                    groupable: true,
-                    aggregators: [
-                        aggregators.total
-                    ],
-                    formatter: function (value) {
-                        return formatters.currency(value, 2, this.currency);
-                    }
-                },
-                {
-                    id: "sum",
-                    label: "Sum",
-                    width: null,
-                    sortable: true,
-                    groupable: true,
-                    aggregators: [
-                        aggregators.total
-                    ],
-                    formatter: function (value) {
-                        return formatters.currency(value, 2, this.currency);
-                    }
-                }
-            ],
-
-            rows: {!! json_encode($items) !!},
-
-            selected: []
-        };
-
-        new Vue({
-            el: "#datatables",
+        const datatable = new Vue({
+            el: '#content',
 
             data: function () {
                 return {
-                    items: items,
-                    currencies: currencies,
+                    items: {!! json_encode($items) !!},
+                    deletedItems: [],
                     aggregators: aggregators,
-                    dateFormats: [
-                        "DD/MM/YYYY",
-                        "DD MMM YYYY",
-                        "D MMMM YYYY",
-                        "D/MM/YYYY h:mm a"
-                    ],
-                    formatters: [
-                        {id: "C", name: "Currency"},
-                        {id: "DT", name: "Date and Time"}
-                    ]
+                    modified: false,
+                    saveButtonClass: 'btn-primary',
+                    @yield('vue-data')
                 };
             },
-
             computed: {
-
-                selectAll: {
-                    get: function () {
-                        return customers.selected.length == customers.rows.length;
-                    },
-                    set: function (value) {
-                        customers.selected = value ? customers.rows : [];
-                    }
-                }
-
+              @yield('vue-computed')
             },
-
+            watch: {
+                items: {
+                    handler: function (val, oldVal) {
+                        this.modified = true;
+                    },
+                    deep: true
+                }
+            },
             methods: {
-                deleteCustomer: function (customer) {
-                    var result = window.confirm("You are about to delete " + customer.purchasor_name + ". Are you sure?");
+                deleteItem: function (rows, item, itemPropName) {
+                    var result = window.confirm("You are about to delete " + item[itemPropName] + ". Are you sure?");
 
                     if (result) {
-                        var index = customers.rows.indexOf(customer);
+                        var index = rows.indexOf(item);
 
                         if (index === -1) {
                             return;
                         }
+                        this.deletedItems.push(rows[index]);
+                        console.log(this.deletedItems);
 
-                        customers.rows.splice(index, 1);
+                        rows.splice(index, 1);
                     }
-                }
-            }
+                },
+                viewItem: function (item, itemPropId) {
+                    window.location = "{{$urlBase.'/show'}}/"+item[itemPropId];
+                },
+                save: function (items, deletedItems){
+                    this.saveButtonClass = 'btn-warning';
+                    axios.post('{{$urlBase}}/update',
+                            {
+                                items: items,
+                                deletedItems:deletedItems,
+                                @yield('vue-update-data')
+                            }).then(data => {
+                                console.log(data);
+                                this.modified = false;
+                                this.saveButtonClass = 'btn-success';
+                                setTimeout(()=>{this.saveButtonClass = 'btn-primary';}, 2000);
+                                @yield('vue-update-success')
+                    });
+                },
+                log: function(item){
+                    window.console.log(item);
+                },
+                @yield('vue-methods')
+            },
+
         });
+
+
+        window.onbeforeunload = function() {
+            return datatable.modified?"Changes are not saved!":null;
+        };
 
     </script>
 @endsection
